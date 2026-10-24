@@ -1238,7 +1238,10 @@ where
         snarl_state.look_at(nodes_bb, ui_rect, min_scale, max_scale);
     }
 
-    if modifiers.command && snarl_resp.clicked_by(PointerButton::Primary) {
+    let clicked_primary = snarl_resp.clicked_by(PointerButton::Primary);
+    let clicked_empty = clicked_primary && node_to_top.is_none() && !modifiers.shift;
+
+    if clicked_empty || (modifiers.command && clicked_primary) {
         snarl_state.deselect_all_nodes();
     }
 
