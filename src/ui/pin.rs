@@ -248,9 +248,9 @@ pub fn draw_pin(painter: &Painter, shape: PinShape, fill: Color32, stroke: Strok
             painter.circle(center, size / 2.0, fill, stroke);
         }
         PinShape::Triangle => {
-            const A: Vec2 = vec2(-0.649_519, 0.4875);
-            const B: Vec2 = vec2(0.649_519, 0.4875);
-            const C: Vec2 = vec2(0.0, -0.6375);
+            const A: Vec2 = vec2(-0.4875, -0.649_519);
+            const B: Vec2 = vec2(-0.4875, 0.649_519);
+            const C: Vec2 = vec2(0.5, 0.0);
 
             let points = vec![center + A * size, center + B * size, center + C * size];
 
