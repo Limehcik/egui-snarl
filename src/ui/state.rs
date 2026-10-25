@@ -202,6 +202,15 @@ impl DrawOrder {
 #[derive(Clone, Default)]
 struct SelectedNodes(SmallVec<[NodeId; 8]>);
 
+/// Snapshot of pin screen positions, used for external hit-testing
+/// (e.g. dropping a variable onto a pin from outside the snarl widget).
+#[derive(Clone)]
+pub(crate) struct PinPositions {
+    pub inputs: Vec<(InPinId, Pos2)>,
+    pub outputs: Vec<(OutPinId, Pos2)>,
+    pub to_global: TSTransform,
+}
+
 impl SelectedNodes {
     fn save(self, cx: &Context, id: Id) {
         cx.data_mut(|d| {
@@ -609,6 +618,56 @@ impl SnarlWidget {
 
         ctx.data(|d| d.get_temp::<SelectedNodes>(snarl_id).unwrap_or_default().0)
             .into_vec()
+    }
+
+    /// Returns the current viewport transform (graph-space → screen-space).
+    pub fn get_viewport_transform_at(self, ui_id: Id, ctx: &Context) -> Option<TSTransform> {
+        let snarl_id = self.get_id(ui_id);
+        SnarlStateData::load(ctx, snarl_id).map(|d| d.to_global)
+    }
+
+    /// Replaces the current selection with `nodes`.
+    pub fn select_nodes_at(self, ui_id: Id, ctx: &Context, nodes: &[NodeId]) {
+        let snarl_id = self.get_id(ui_id);
+        let mut selected = SelectedNodes::load(ctx, snarl_id);
+        selected.0.clear();
+        selected.0.extend(nodes.iter().copied());
+        selected.save(ctx, snarl_id);
+    }
+
+    /// Clears the current selection.
+    pub fn deselect_all_at(self, ui_id: Id, ctx: &Context) {
+        let snarl_id = self.get_id(ui_id);
+        SelectedNodes::default().save(ctx, snarl_id);
+    }
+
+    /// Finds the pin (if any) within `HIT_RADIUS` of `screen_pos`.
+    pub fn pick_pin_at(
+        self,
+        ui_id: Id,
+        ctx: &Context,
+        screen_pos: Pos2,
+    ) -> Option<crate::ui::AnyPin> {
+        let snarl_id = self.get_id(ui_id);
+        let positions = ctx.data(|d| d.get_temp::<PinPositions>(snarl_id.with("pin_positions")))?;
+        let graph_pos = positions.to_global.inverse() * screen_pos;
+
+        const HIT_RADIUS: f32 = 20.0;
+        let mut best: Option<(crate::ui::AnyPin, f32)> = None;
+
+        for (id, pos) in &positions.inputs {
+            let d = (graph_pos - *pos).length();
+            if d < HIT_RADIUS && best.map_or(true, |(_, bd)| d < bd) {
+                best = Some((crate::ui::AnyPin::In(*id), d));
+            }
+        }
+        for (id, pos) in &positions.outputs {
+            let d = (graph_pos - *pos).length();
+            if d < HIT_RADIUS && best.map_or(true, |(_, bd)| d < bd) {
+                best = Some((crate::ui::AnyPin::Out(*id), d));
+            }
+        }
+        best.map(|(p, _)| p)
     }
 }
 

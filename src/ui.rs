@@ -26,14 +26,13 @@ mod viewer;
 mod wire;
 
 use self::{
-    pin::AnyPin,
-    state::{NewWires, NodeState, RowHeights, SnarlState},
+    state::{NewWires, NodeState, PinPositions, RowHeights, SnarlState},
     wire::{draw_wire, hit_wire, pick_wire_style},
 };
 
 pub use self::{
     background_pattern::{BackgroundPattern, Grid},
-    pin::{AnyPins, PinInfo, PinShape, PinWireInfo, SnarlPin},
+    pin::{AnyPin, AnyPins, PinInfo, PinShape, PinWireInfo, SnarlPin},
     state::get_selected_nodes,
     viewer::SnarlViewer,
     wire::{WireLayer, WireStyle},
@@ -1110,6 +1109,15 @@ where
             }
         }
     }
+
+    // Save pin positions for external hit-testing (variable drag from outside).
+    let pin_positions = PinPositions {
+        inputs: input_info.iter().map(|(k, v)| (*k, v.pos)).collect(),
+        outputs: output_info.iter().map(|(k, v)| (*k, v.pos)).collect(),
+        to_global,
+    };
+    ui.ctx()
+        .data_mut(|d| d.insert_temp(snarl_id.with("pin_positions"), pin_positions));
 
     let mut hovered_wire = None;
     let mut hovered_wire_disconnect = false;

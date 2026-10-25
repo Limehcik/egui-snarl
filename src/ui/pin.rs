@@ -5,8 +5,14 @@ use crate::{InPinId, OutPinId};
 use super::{SnarlStyle, WireStyle};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+/// Identifies a pin of either kind (input or output).
+///
+/// Used for reporting which pin the pointer is hovering over, and for
+/// external pin hit-testing (e.g. dropping a variable onto a pin).
 pub enum AnyPin {
+    /// Output pin identifier.
     Out(OutPinId),
+    /// Input pin identifier.
     In(InPinId),
 }
 
